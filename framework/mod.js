@@ -31,11 +31,9 @@ System.prototype.exec = function exec(command) {
 	var child = child_process.exec(command, function(err,stdout,stderr) {
 		if (err || stderr) {
 			rej(err || stderr);
+		} else {
+			res(stdout);
 		}
-	});
-	child.stdout.pipe(out);
-	child.on('exit', function() {
-		res(out);
 	});
 
 	//TESTING
