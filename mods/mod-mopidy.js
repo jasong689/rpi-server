@@ -1,6 +1,12 @@
 var System = require('../framework/mod'),
 	sys = new System('mopidy');
 
+sys.getStatus = function getStatus() {
+	return this.exec('service mopidy status').then(function(stdout) {
+		return { resp: stdout };
+	});
+};
+
 sys.setRestart = function setRestart() {
 	return this.exec('service mopidy restart').then(function(stdout) {
 		return { resp: stdout };
