@@ -5,6 +5,7 @@ var express = require("express"),
 
 app.use('/api/system',require('./router/system'));
 app.use('/api/kodi', require('./router/kodi'));
+app.use('/api/mopidy', require('./router/mopidy'));
 app.get('/', function(req,res) {
 	res.send('Hello World');
 });

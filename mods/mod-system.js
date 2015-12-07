@@ -1,55 +1,38 @@
 "use strict"
 
-var child_process = require('child_process'),
-	Promise = require('promise');
+var System = require('../framework/mod'),
+	sys = new System('system');
 
-function exec(command) {
-	var res,
-		rej,
-		promise = new Promise(function(resolve,reject) {
-			res = resolve;
-			rej = reject;
-		});
-	console.log('Executing [' + command + ']');
-	child_process.exec(command, function(err,stdout,stderr) {
-		if (err || stderr) {
-			rej(err || stderr);
-		} else {
-			res(stdout);
-		}
+function parseAudio(r) {
+	var out = r.split(':'),
+		message = out[0],
+		result = out[1].replace(/\s/,'').split('=');
+
+	return { value: result[1] };
+}
+
+sys.getAudio = function getAudio() {
+	return this.exec('amixer cget numid=3').then(function(stdout) {
+		return parseAudio(stdout);
 	});
-
-	return promise;
-}
-
-function System() {
-	var resource = 'system';
-
-	this.execAction = function(type, action, req) {
-		var response = new Promise(function(res,rej) { rej('Cannot find command [' + action + ']'); });
-
-		if (resource === type && typeof this[action] === 'function') {
-			var command = this[action].call(this);
-			response = exec(command);
-		}
-		return response;
-	};
-}
-
-System.prototype.getAudio = function getAudio() {
-	return 'amixer cget numid=3';
 };
 
-System.prototype.setAudioHdmi = function setAudioHdmi() {
-	return 'amixer cset numid=3 2';
+sys.setAudioHdmi = function setAudioHdmi() {
+	return this.exec('amixer cset numid=3 2').then(function(stdout) {
+		return parseAudio(stdout);
+	});
 };
 
-System.prototype.setAudioAnalog = function setAudioAnalog() {
-	return 'amixer cset numid=3 1';
+sys.setAudioAnalog = function setAudioAnalog() {
+	return this.exec('amixer cset numid=3 1').then(function(stdout) {
+		return parseAudio(stdout);
+	});
 };
 
-System.prototype.setAudioAuto = function setAudioAuto() {
-	return 'amixer cset numid=3 0';
+sys.setAudioAuto = function setAudioAuto() {
+	return this.exec('amixer cset numid=3 0').then(function(stdout) {
+		return parseAudio(stdout);
+	});
 }
 
-module.exports = new System();
+module.exports = sys;
