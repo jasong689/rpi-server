@@ -28,7 +28,7 @@ System.prototype.exec = function exec(command) {
 		out = '';
 	console.log('Executing [' + command + ']');
 	
-	var = child_process.exec(command, function(err,stdout,stderr) {
+	var child = child_process.exec(command, function(err,stdout,stderr) {
 		if (err || stderr) {
 			rej(err || stderr);
 		}
