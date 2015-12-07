@@ -25,17 +25,17 @@ System.prototype.exec = function exec(command) {
 			res = resolve;
 			rej = reject;
 		});
-	// console.log('Executing [' + command + ']');
-	// child_process.exec(command, function(err,stdout,stderr) {
-	// 	if (err || stderr) {
-	// 		rej(err || stderr);
-	// 	} else {
-	// 		res(stdout);
-	// 	}
-	// });
+	console.log('Executing [' + command + ']');
+	child_process.exec(command, function(err,stdout,stderr) {
+		if (err || stderr) {
+			rej(err || stderr);
+		} else {
+			res(stdout);
+		}
+	});
 
 	//TESTING
-	res('numid=3,iface=MIXER,name=\'PCM Playback Route\' ; type=INTEGER,access=rw------,values=1,min=0,max=2,step=0 : values=2');
+	//res('numid=3,iface=MIXER,name=\'PCM Playback Route\' ; type=INTEGER,access=rw------,values=1,min=0,max=2,step=0 : values=2');
 
 	return promise;
 };
