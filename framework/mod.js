@@ -24,14 +24,18 @@ System.prototype.exec = function exec(command) {
 		promise = new Promise(function(resolve,reject) {
 			res = resolve;
 			rej = reject;
-		});
+		}),
+		out = '';
 	console.log('Executing [' + command + ']');
-	child_process.exec(command, function(err,stdout,stderr) {
+	
+	var = child_process.exec(command, function(err,stdout,stderr) {
 		if (err || stderr) {
 			rej(err || stderr);
-		} else {
-			res(stdout);
 		}
+	});
+	child.stdout.pipe(out);
+	child.on('exit', function() {
+		res(out);
 	});
 
 	//TESTING
