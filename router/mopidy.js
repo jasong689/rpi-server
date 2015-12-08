@@ -9,7 +9,7 @@ router
 	.get('/', function(req,res) {
 		mopidy.execAction('mopidy','getStatus')
 			.then(function(stdout) {
-				res.json(stdout);
+				res.json(stdout.replace('\n'));
 			},
 			function(err) {
 				res.json({ err: err });
