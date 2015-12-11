@@ -20,6 +20,10 @@ var mpd = (function() {
 		}
 		return _instance;
 	}
+	
+	return {
+		getInstance: getInstance
+	};
 })();
 
 sys.getPlayerstatus = function getPlayerstatus() {
