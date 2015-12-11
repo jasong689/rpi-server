@@ -21,6 +21,12 @@ router
 				res.json(resp);
 			});
 	})
+	.get('/player/stats', function(req,res) {
+		mopidy.execAction('mopidy','getPlayerstats')
+			.then(function(resp) {
+				res.json(resp);
+			});
+	})
 	.get('/:action', function(req,res) {
 		var response = mopidy.execAction('mopidy', 'set' + framework.uppercaseFirst(req.params.action));
 		response.then(function(stdout) {

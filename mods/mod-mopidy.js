@@ -11,7 +11,7 @@ var System = require('../framework/mod'),
 // messages to mpd server
 var mpd = (function() {
 	var _instance = null,
-		_port = '6680',
+		_port = '6600',
 		// stored here for now
 		// move to db
 		_password = '',
@@ -19,47 +19,65 @@ var mpd = (function() {
 		_commands = [],
 		_public = {};
 
+	function _write() {
+		var first = _commands.length > 0 ? _commands[0] : {};
+		if(!_ready) return;
+		if (first.status === 'pending') {
+			return false;
+		} else if (first.status === 'new') {
+			console.log('I am ready:' + _ready);
+			console.log('Sending message: [' + first.command +']');
+			_instance.write(first.command);
+			first.status = 'pending';
+		}
+	}
+
+	// add a new message to commands
+	// and see if we can write it
+	function _send(message,p) {
+		var command = { 
+			command: message,
+			status: 'new',
+			promise: p
+		};
+		_commands.push(command);
+		console.log('Send called: [' + JSON.stringify(command) + ']');
+		_write()
+	};
+
 	function getInstance() {
 		if (_instance === null) {
-			// checks our array for any new/pending messages
-			var write = function() {
-				var first = _commands.first();
-				if (first.status === 'pending') {
-					return false;
-				} else if (first.status == 'new') {
-					inst.write(message);
-					first.status = 'pending';
-				}
-			};
-
-			_instance = net.createConnection({port:_port});
+			_instance = net.createConnection({port:_port,host:'192.168.1.239'});
 			_instance.setEncoding(encoding);
-			_instance.write('password ' + _password + '\n');
 			// once a response is received we can resolve its
 			// promise with the data and proceed with the next message
-			_instance.once('data', function(data) {
+			_instance.on('data', function(data) {
+				if (data.toString().indexOf('OK MPD') >= 0) {
+					return;
+				}
 				_ready = true;
-				_instance.on('data', function(data) {
-					var command = commands.shift();
-					command.promise.resolve(data);
-					write();
-				});
+				console.log('Ready: [' + data + ']');
+				// remove the password listener
+				// and add our normal listener
+				_instance
+					.removeAllListeners(['data'])
+					.on('data', function(data) {
+						console.log(_commands);
+						var command = _commands.shift();
+						console.log('Data received: [' + data.toString() + ']');
+						command.promise.resolve(data.toString());
+						_write();
+					});
+
+				_write();
+			});
+			_instance.write('password ' + _password + '\n');
+
+			_instance.on('end', function(err) {
+				console.log(err);
 			});
 
-			// add a new message to commands
-			// and see if we can write it
-			var send = function(message,p) {
-				if  (!_ready) return false;
-				var command = { 
-					command: message,
-					status: 'new',
-					promise: p
-				};
-				_commands.push(command);
-				write()
-			};
-
-			_public.send = send;
+			_public.send = _send;
 		}
 		return _public;
 	}
@@ -72,8 +90,15 @@ var mpd = (function() {
 sys.getPlayerstatus = function getPlayerstatus() {
 	var def = Promise.deferred(),
 		so = mpd.getInstance();
-
 	so.send('status\n',def);
+
+	return def;
+};
+
+sys.getPlayerstats = function getPlayerstats() {
+	var def = Promise.deferred(),
+		so = mpd.getInstance();
+	so.send('stats\n',def);
 
 	return def;
 };
