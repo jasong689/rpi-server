@@ -16,7 +16,7 @@ var mpd = (function() {
 	function getInstance() {
 		if (_instance === null) {
 			_instance = new net.Socket();
-			socket.connect({port:port});
+			_instance.connect({port:port});
 		}
 		return _instance;
 	}
