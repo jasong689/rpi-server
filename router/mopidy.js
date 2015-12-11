@@ -15,6 +15,12 @@ router
 				res.json({ err: err });
 			});
 	})
+	.get('/player/status', function(req,res) {
+		mopidy.execAction('mopidy','getPlayerstatus')
+			.then(function(resp) {
+				res.json(resp);
+			});
+	})
 	.get('/:action', function(req,res) {
 		var response = mopidy.execAction('mopidy', 'set' + framework.uppercaseFirst(req.params.action));
 		response.then(function(stdout) {
