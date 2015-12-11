@@ -2,7 +2,7 @@
 
 var System = require('../framework/mod'),
 	sys = new System('mopidy'),
-	net = require('net')
+	net = require('net'),
 	app = require('../framework/app'),
 	encoding = 'UTF8',
 	Promise = app.Promise;
