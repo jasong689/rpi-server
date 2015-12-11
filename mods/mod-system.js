@@ -6,7 +6,7 @@ var System = require('../framework/mod'),
 function parseAudio(r) {
 	var out = r.split(':'),
 		message = out[0],
-		result = out[1].replace(/\s/,'').split('=');
+		result = out[1].replace(/[\s\n]/,'').split('=');
 
 	return { value: result[1] };
 }
