@@ -15,20 +15,14 @@ router
 				res.json({ err: err });
 			});
 	})
-	.get('/player/status', function(req,res) {
-		mopidy.execAction('mopidy','getPlayerstatus')
+	.get('/:resource/:action', function(req,res) {
+		mopidy.execAction('mopidy','get' + framework.uppercaseFirst(req.params.action), req.query)
 			.then(function(resp) {
 				res.json(resp);
 			});
 	})
-	.get('/player/stats', function(req,res) {
-		mopidy.execAction('mopidy','getPlayerstats')
-			.then(function(resp) {
-				res.json(resp);
-			});
-	})
-	.get('/:action', function(req,res) {
-		var response = mopidy.execAction('mopidy', 'set' + framework.uppercaseFirst(req.params.action));
+	.post('/:resource/:action', function(req,res) {
+		var response = mopidy.execAction('mopidy', 'set' + framework.uppercaseFirst(req.params.action), req.body);
 		response.then(function(stdout) {
 			res.json(stdout);
 		},

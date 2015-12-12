@@ -12,7 +12,7 @@ function System(sys) {
 		console.log(this[action]);
 
 		if (resource === type && typeof this[action] === 'function') {
-			response = this[action].call(this);
+			response = this[action].call(this, req);
 		}
 		return response;
 	};
