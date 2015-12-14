@@ -1,9 +1,10 @@
 "use strict"
 
 var express = require("express"),
-	app = express();
+	app = express(),
+	bp = require('body-parser');
 
-app.use(express.json());
+app.use(bp.json());
 app.use('/api/system',require('./router/system'));
 app.use('/api/kodi', require('./router/kodi'));
 app.use('/api/mopidy', require('./router/mopidy'));

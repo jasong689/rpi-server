@@ -1,15 +1,15 @@
-var mpd = require('mpd'),
+var mpd = require('./mpd'),
 	app = require('../framework/app'),
 	Promise = app.Promise;
 
-var Mopidy = (
+var Mopidy = (function() {
 	// some private properties
 	var _playerStatus = Object.defineProperties({}, {
-			'PLAYING': { value: 1, writable: false },
-			'STOPPED': { value: 2, writable: false },
-			'PAUSED': { value: 3, writable: false }
+			'PLAY': { value: 1, writable: false },
+			'STOP': { value: 2, writable: false },
+			'PAUSE': { value: 3, writable: false }
 		}),
-		currentStatus = _playerStatus.STOPPED;
+		currentStatus = _playerStatus.STOP;
 
 	function Mopidy() {}
 
@@ -29,8 +29,22 @@ var Mopidy = (
 		return def;
 	};
 
-	Mopdidy.prototype.getPlaylist = function(name) {
-		var command = !!name ? buildWithParams({command:'listplaylistinfo',params: [name]}]) : buildCommand(['playlistinfo']),
+	Mopidy.prototype.setPlayerStatus = function(status) {
+		var def = Promise.deferred();
+		switch(status) {
+			case _playerStatus.PLAY:
+				return this.play();
+			case _playerStatus.PAUSE:
+				return this.pause();
+			case _playerStatus.STOP:
+				return this.stop();
+			default:
+				return def.reject();
+		}
+	};
+
+	Mopidy.prototype.getPlaylist = function(name) {
+		var command = !!name ? buildWithParams([{command:'listplaylistinfo',params: [name]}]) : buildCommand(['playlistinfo']),
 			m = mpd.getInstance(),
 			def = Promise.deferred();
 
@@ -48,8 +62,18 @@ var Mopidy = (
 	Mopidy.prototype.getGmusic = function() {
 		var def = Promise.deferred(),
 			m = mpd.getInstance();
-		m.send(buildPathCommand("Google Music"),def);
+		m.send(this.buildPathCommand("Google Music"),def);
 		return def;
+	};
+
+	Mopidy.prototype.getDirectory = function(uri) {
+		var def = Promise.deferred(),
+			m = mpd.getInstance();
+		if (uri) {
+			m.send(this.buildPathCommand(uri),def);
+			return def;
+		}
+		return def.reject();
 	};
 
 	Mopidy.prototype.play = function(pos) {
@@ -60,7 +84,10 @@ var Mopidy = (
 		command = buildWithParams([{command:'play', params: [pos]}]);
 
 		m.send(command,def);
-		return def;
+		return def.then(function(data) {
+			currentStatus = _playerStatus.PLAY;
+			return data;
+		});
 	};
 
 	Mopidy.prototype.playId = function(id) {
@@ -69,15 +96,22 @@ var Mopidy = (
 		if (!id) return def.reject();
 
 		m.send(buildWithParams([{command:'playid',params:[id]}]),def);
-		return def;
+		return def.then(function(data) {
+			currentStatus = _playerStatus.PLAY;
+			return data;
+		});
 	};
 
 	Mopidy.prototype.pause = function () {
 		// we can only pause if currently playing
 		var def = Promise.deferred(),
 			m = mpd.getInstance();
-		if (currentStatus == _playerStatus.PLAYING) {
-			return m.send(buildWithParams([{command:'pause',params:[1]}]),def);
+		if (currentStatus == _playerStatus.PLAY) {
+			m.send(buildWithParams([{command:'pause',params:[1]}]),def);
+			return def.then(function(data) {
+				currentStatus = _playerStatus.PAUSE;
+				return data;
+			});
 		}
 		return def.reject();
 	};
@@ -86,8 +120,12 @@ var Mopidy = (
 		// we can only stop if the current status is not stopped
 		var def = Promise.deferred(),
 			m = mpd.getInstance();
-		if (currentStatus != _playerStatus.STOPPED) {
-			return m.send(buildCommand(['stop']),def);
+		if (currentStatus != _playerStatus.STOP) {
+			m.send(buildCommand(['stop']),def);
+			return def.then(function(data) {
+				currentStatus = _playerStatus.STOP;
+				return data;
+			});
 		}
 		return def.reject();
 	};
@@ -97,7 +135,8 @@ var Mopidy = (
 			m = mpd.getInstance();
 		// we'll only allow seeking to an integer second
 		if (Number.isInteger(time)) {
-			return m.send(buildWithParams([{command:'seekcur',params:[time]}]),def);
+			m.send(buildWithParams([{command:'seekcur',params:[time]}]),def);
+			return def;
 		}
 		return def.reject();
 	};
@@ -107,12 +146,13 @@ var Mopidy = (
 			m = mpd.getInstance(),
 			position = pos || 1;
 		if (Number.isInteger(time)) {
-			return m.send(buildWithParams([{command:'seek',params:[position,time]}]),def)
+			m.send(buildWithParams([{command:'seek',params:[position,time]}]),def);
+			return def;
 		}
 		return def.reject();
 	};
 
-	Mopdiy.prototype.buildPathCommand = function(uri) {
+	Mopidy.prototype.buildPathCommand = function(uri) {
 		return buildWithParams([{command:'lsinfo',params:[uri]}]);
 	};
 
@@ -121,6 +161,7 @@ var Mopidy = (
 			m = mpd.getInstance(),
 			command;
 
+		if (!playlist) return def.reject();
 		if (isArrayAndFilled(startEnd) && Number.isInteger(startEnd[0]) && Number.isInteger(startEnd[1])) {
 			command = buildWithParams([{command:'load',params:[playlist,startEnd[0],startEnd[1]]}]);
 		} else {
@@ -136,7 +177,7 @@ var Mopidy = (
 	});
 
 	return Mopidy;
-)();
+})();
 
 function buildWithParams(commands) {
 	if (!isArrayAndFilled(commands)) return '';
@@ -147,7 +188,7 @@ function buildWithParams(commands) {
 			command = c.command;
 			params = c.params;
 			if (isArrayAndFilled(c.params)) {
-				command = command + " " + params.map(function(p) {eturn '\"' + p + '\"';}).join(' ');
+				command = command + " " + params.map(function(p) {return '\"' + p + '\"';}).join(' ');
 			}
 			return command;
 		}
@@ -159,7 +200,7 @@ function buildCommand(commands) {
 	if (!isArrayAndFilled(commands)) return '';
 
 	var command = commands.length > 1 ? commands.join('\n') : commands[0];
-	return 'command_list_begin\n' + command + 'command_list_end';
+	return 'command_list_begin\n' + command + '\ncommand_list_end\n';
 }
 
 function isArrayAndFilled(arr) {

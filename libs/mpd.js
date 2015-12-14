@@ -77,6 +77,18 @@ var mpd = (function() {
 		return r;
 	}
 
+	function _parseFinalResponse(response) {
+		var respArr = _parseResponse(response);
+		return respArr.map(function(r) {
+			var line = r.split(':'),
+				key = line.shift().trim(),
+				value = line[0] ? line.map(function(l) { return l.trim(); }).join(':') : '',
+				result = {};
+			result[key] = value;
+			return result;
+		});
+	}
+
 	function getInstance() {
 		if (_instance === null) {
 			_instance = new net.Socket();
@@ -87,11 +99,12 @@ var mpd = (function() {
 				console.log(_commands);
 				var command,
 					response = _parseResponse(data.toString());
+				// data is not finished until OK or ACK is received
 				if (/OK|ACK/.test(response[response.length - 1])) {
 					command = _commands.shift();
 					command.response += data.toString();
 					console.log('Data received: [\n' + command.response + '\n]');
-					command.promise.resolve(command.response);
+					command.promise.resolve(_parseFinalResponse(command.response));
 				} else {
 					command = _commands[0];
 					command.response += data.toString();
@@ -99,8 +112,9 @@ var mpd = (function() {
 				_write();
 			});
 			_openConnection();
-			// if the connection is ended, remove listeners
-			// they'll be set up again when getInstance is called
+			// if the connection is ended
+			// set _open and _ready to false so that a new
+			// connection is opened on next call to _write
 			_instance.on('end', function(err) {
 				console.log('Ended');
 				_open = false;

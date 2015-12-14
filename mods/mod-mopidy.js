@@ -5,20 +5,38 @@ var System = require('../framework/mod'),
 	Mopidy = require('../libs/mopidy'),
 	mpd = new Mopidy();
 
-sys.getPlayerstatus = function getPlayerstatus() {
-	var def = Promise.deferred(),
-		so = mpd.getInstance();
-	so.send('status\n',def);
-
-	return def;
+sys.getPlayerStatus = function getPlayerstatus() {
+	return mpd.getStatus();
 };
 
-sys.getPlayerstats = function getPlayerstats() {
-	var def = Promise.deferred(),
-		so = mpd.getInstance();
-	so.send('stats\n',def);
+sys.getPlayerStats = function getPlayerstats() {
+	return mpd.getStats();
+};
 
-	return def;
+sys.setPlayerStatus = function setPlayerStatus(req) {
+	return mpd.setPlayerStatus(parseInt(req.status));
+};
+
+sys.getPlaylists = function getPlaylists() {
+	return mpd.getPlaylists();
+};
+
+sys.getPlaylist = function getPlaylist(req) {
+	var name = req.name;
+	return mpd.getPlaylist(name);
+};
+
+sys.setPlayerPlaylist = function setPlayerPlaylist(req) {
+	var name = req.name;
+	return mpd.loadPlaylist(name);
+};
+
+sys.getGmusic = function getGmusic() {
+	return mpd.getGmusic();
+};
+
+sys.getDirectory = function getDirectory(req) {
+	return mpd.getDirectory(req.uri);
 };
 
 sys.getStatus = function getStatus() {
