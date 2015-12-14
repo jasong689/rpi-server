@@ -5,6 +5,10 @@ var System = require('../framework/mod'),
 	Mopidy = require('../libs/mopidy'),
 	mpd = new Mopidy();
 
+sys.getPlayerCurrent = function getPlayerCurrent() {
+	return mpd.getCurrentSong();
+};
+
 sys.getPlayerStatus = function getPlayerstatus() {
 	return mpd.getStatus();
 };
@@ -15,6 +19,23 @@ sys.getPlayerStats = function getPlayerstats() {
 
 sys.setPlayerStatus = function setPlayerStatus(req) {
 	return mpd.setPlayerStatus(parseInt(req.status));
+};
+
+sys.setPlayerSingle = function setPlayerSingle(req) {
+	return mpd.setSingle(req.single);
+};
+
+sys.setPlayerRandom = function setPlayerRandom(req) {
+	return mpd.setRandom(req.random);
+};
+
+sys.setPlayerRepeat = function setPlayerRepeat(req) {
+	console.log(req);
+	return mpd.setRepeat(req.repeat);
+};
+
+sys.setPlayerVolume = function setPlayerVolume(req) {
+	return mpd.setVolume(req.volume);
 };
 
 sys.getPlaylists = function getPlaylists() {

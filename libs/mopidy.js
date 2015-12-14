@@ -9,24 +9,59 @@ var Mopidy = (function() {
 			'STOP': { value: 2, writable: false },
 			'PAUSE': { value: 3, writable: false }
 		}),
-		currentStatus = _playerStatus.STOP;
+		currentStatus = _playerStatus.STOP,
+		currentRepeat = 0,
+		currentRandom = 0,
+		currentSingle = 0;
 
 	function Mopidy() {}
 
-	Mopidy.prototype.getStatus = function() {
-		var def = Promise.deferred(),
-			m = mpd.getInstance();
+	Mopidy.prototype.getCurrentSong = function() {
+		var m = mpd.getInstance();
+		return m.send(buildCommand(['currentsong']));
+	};
 
-		m.send(buildCommand(['status']),def);
-		return def;
+	Mopidy.prototype.setRepeat = function(val) {
+		var m = mpd.getInstance();
+		return m.send(buildWithParams([{command:'repeat',params:[val]}]))
+			.then(function(data) {
+				currentRepeat = val;
+				return data;
+			});
+	};
+
+	Mopidy.prototype.setRandom = function(val) {
+		var m = mpd.getInstance();
+		return m.send(buildWithParams([{command:'random',params:[~~!!val]}]))
+			.then(function(data) {
+				currentRandom = val;
+				return data;
+			});
+	};
+
+	Mopidy.prototype.setSingle = function(val) {
+		var m = mpd.getInstance();
+		return m.send(buildWithParams([{command:'single',params:[~~!!val]}]))
+			.then(function(data) {
+				currentSingle = val;
+				return data;
+			});
+	};
+
+	Mopidy.prototype.setVolume = function(val) {
+		var m = mpd.getInstance(),
+			vol = ~~val;
+		return m.send(buildWithParams([{command:'setvol',params:[vol]}]));
+	};
+
+	Mopidy.prototype.getStatus = function() {
+		var m = mpd.getInstance();
+		return m.send(buildCommand(['status']));
 	};
 
 	Mopidy.prototype.getStats = function() {
-		var def = Promise.deferred(),
-			m = mpd.getInstance();
-
-		m.send(buildCommand(['stats']),def);
-		return def;
+		var m = mpd.getInstance();
+		return m.send(buildCommand(['stats']));
 	};
 
 	Mopidy.prototype.setPlayerStatus = function(status) {
@@ -45,49 +80,40 @@ var Mopidy = (function() {
 
 	Mopidy.prototype.getPlaylist = function(name) {
 		var command = !!name ? buildWithParams([{command:'listplaylistinfo',params: [name]}]) : buildCommand(['playlistinfo']),
-			m = mpd.getInstance(),
-			def = Promise.deferred();
-
-		m.send(command,def);
-		return def;
+			m = mpd.getInstance();
+		return m.send(command);
 	};
 
 	Mopidy.prototype.getPlaylists = function() {
-		var def = Promise.deferred(),
-			m = mpd.getInstance();
-		m.send(buildCommand(['listplaylists']),def);
-		return def;
+		var m = mpd.getInstance();
+		return m.send(buildCommand(['listplaylists']));
 	};
 
 	Mopidy.prototype.getGmusic = function() {
-		var def = Promise.deferred(),
-			m = mpd.getInstance();
-		m.send(this.buildPathCommand("Google Music"),def);
-		return def;
+		var m = mpd.getInstance();
+		return m.send(this.buildPathCommand("Google Music"));
 	};
 
 	Mopidy.prototype.getDirectory = function(uri) {
 		var def = Promise.deferred(),
 			m = mpd.getInstance();
 		if (uri) {
-			m.send(this.buildPathCommand(uri),def);
-			return def;
+			return m.send(this.buildPathCommand(uri));
 		}
 		return def.reject();
 	};
 
 	Mopidy.prototype.play = function(pos) {
 		var command,
-			def = Promise.deferred(),
 			m = mpd.getInstance();
 		if (!pos) command = buildWithParams([{command:'pause', params: [0]}]);
 		command = buildWithParams([{command:'play', params: [pos]}]);
 
-		m.send(command,def);
-		return def.then(function(data) {
-			currentStatus = _playerStatus.PLAY;
-			return data;
-		});
+		return m.send(command)
+			.then(function(data) {
+				currentStatus = _playerStatus.PLAY;
+				return data;
+			});
 	};
 
 	Mopidy.prototype.playId = function(id) {
@@ -95,11 +121,11 @@ var Mopidy = (function() {
 			m = mpd.getInstance();
 		if (!id) return def.reject();
 
-		m.send(buildWithParams([{command:'playid',params:[id]}]),def);
-		return def.then(function(data) {
-			currentStatus = _playerStatus.PLAY;
-			return data;
-		});
+		return m.send(buildWithParams([{command:'playid',params:[id]}]))
+			.then(function(data) {
+				currentStatus = _playerStatus.PLAY;
+				return data;
+			});
 	};
 
 	Mopidy.prototype.pause = function () {
@@ -107,11 +133,11 @@ var Mopidy = (function() {
 		var def = Promise.deferred(),
 			m = mpd.getInstance();
 		if (currentStatus == _playerStatus.PLAY) {
-			m.send(buildWithParams([{command:'pause',params:[1]}]),def);
-			return def.then(function(data) {
-				currentStatus = _playerStatus.PAUSE;
-				return data;
-			});
+			return m.send(buildWithParams([{command:'pause',params:[1]}]))
+				.then(function(data) {
+					currentStatus = _playerStatus.PAUSE;
+					return data;
+				});
 		}
 		return def.reject();
 	};
@@ -121,11 +147,11 @@ var Mopidy = (function() {
 		var def = Promise.deferred(),
 			m = mpd.getInstance();
 		if (currentStatus != _playerStatus.STOP) {
-			m.send(buildCommand(['stop']),def);
-			return def.then(function(data) {
-				currentStatus = _playerStatus.STOP;
-				return data;
-			});
+			m.send(buildCommand(['stop']))
+				.then(function(data) {
+					currentStatus = _playerStatus.STOP;
+					return data;
+				});
 		}
 		return def.reject();
 	};
@@ -135,8 +161,7 @@ var Mopidy = (function() {
 			m = mpd.getInstance();
 		// we'll only allow seeking to an integer second
 		if (Number.isInteger(time)) {
-			m.send(buildWithParams([{command:'seekcur',params:[time]}]),def);
-			return def;
+			return m.send(buildWithParams([{command:'seekcur',params:[time]}]));
 		}
 		return def.reject();
 	};
@@ -146,8 +171,7 @@ var Mopidy = (function() {
 			m = mpd.getInstance(),
 			position = pos || 1;
 		if (Number.isInteger(time)) {
-			m.send(buildWithParams([{command:'seek',params:[position,time]}]),def);
-			return def;
+			return m.send(buildWithParams([{command:'seek',params:[position,time]}]));
 		}
 		return def.reject();
 	};
@@ -157,8 +181,7 @@ var Mopidy = (function() {
 	};
 
 	Mopidy.prototype.loadPlaylist = function(playlist,startEnd) {
-		var def = Promise.deferred(),
-			m = mpd.getInstance(),
+		var m = mpd.getInstance(),
 			command;
 
 		if (!playlist) return def.reject();
@@ -167,8 +190,7 @@ var Mopidy = (function() {
 		} else {
 			command = buildWithParams([{command:'load',params:[playlist]}]);
 		}
-		m.send(command,def);
-		return def;
+		return m.send(command);
 	};
 
 	Object.defineProperty(Mopidy.prototype, 'PLAYER_STATUS', {

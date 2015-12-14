@@ -20,6 +20,7 @@ var mpd = (function() {
 
 	function _write() {
 		var first = _commands.length > 0 ? _commands[0] : { command: '' };
+		// if the socket is not ready, we can only send password commands
 		if (!_ready && first.command.indexOf('password') < 0) return;
 		if (first.status === 'pending') {
 			return false;
@@ -33,16 +34,18 @@ var mpd = (function() {
 
 	// add a new message to commands
 	// and see if we can write it
-	function _send(message,p) {
-		var command = { 
-			command: message,
-			status: 'new',
-			promise: p,
-			response: ''
-		};
+	function _send(message) {
+		var p = Promise.deferred(),
+			command = { 
+				command: message,
+				status: 'new',
+				promise: p,
+				response: ''
+			};
 		_commands.push(command);
 		console.log('Send called: [' + JSON.stringify(command) + ']');
 		_write()
+		return p;
 	}
 
 	function _openConnection() {
@@ -64,12 +67,12 @@ var mpd = (function() {
 
 	function _sendPassword() {
 		var passwordPromise = Promise.deferred();
-		_send('password ' + _password + '\n',passwordPromise);
-		passwordPromise.then(function() {
-			console.log('Ready');
-			_ready = true;
-			_write();
-		});
+		_send('password ' + _password + '\n',passwordPromise)
+			.then(function() {
+				console.log('Ready');
+				_ready = true;
+				_write();
+			});
 	}
 
 	function _parseResponse(response) {
@@ -83,6 +86,8 @@ var mpd = (function() {
 		return respArr.map(function(r) {
 			var line = r.split(':'),
 				key = line.shift().trim(),
+				// we may have split up the response value
+				// put them back together
 				value = line[0] ? line.map(function(l) { return l.trim(); }).join(':') : '',
 				result = {};
 			result[key] = value;
@@ -133,6 +138,7 @@ var mpd = (function() {
 			_public.send = _send;
 		}
 		if (!_open) _openConnection();
+		// we only expose the send method of our instance
 		return _public;
 	}
 	
