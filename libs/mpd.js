@@ -1,17 +1,18 @@
 var net = require('net'),
 	app = require('../framework/app'),
 	encoding = 'UTF8',
-	Promise = app.Promise
+	Promise = app.Promise,
+	config = require('../framework/config');
 
 // create a net singleton which will handle sending tcp
 // messages to mpd server
 var mpd = (function() {
 	var _instance = null,
-		_port = '6600',
-		_host = '',
+		_port = config.mpd.port,
+		_host = config.mpd.host,
 		// stored here for now
 		// move to db
-		_password = '',
+		_password = config.mpd.password,
 		_ready = false,
 		_commands = [],
 		_public = {},
