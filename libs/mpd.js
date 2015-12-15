@@ -110,7 +110,9 @@ var mpd = (function() {
 					command = _commands.shift();
 					command.response += data.toString();
 					console.log('Data received: [\n' + command.response + '\n]');
-					command.promise.resolve(_parseFinalResponse(command.response));
+					command.promise.resolve({
+						response: _parseFinalResponse(command.response)
+					});
 				} else {
 					command = _commands[0];
 					command.response += data.toString();
